@@ -15,20 +15,31 @@ contract RaptorNFT is ERC721, Ownable {
 
     error RaptorNFT__NotEnoughFunds();
     error RaptorNFT__NotWhitelisted();
+    error RaptorNFT__TokenNotSupported();
     error RaptorNFT__AddressZero();
 
     uint256 public s_tokenIdCounter;
     uint256 public s_nftPriceInUsd;
     mapping(address => bool) public s_whitelistedUsers;
+    mapping(address => bool) public s_supportedStableTokens;
 
     AggregatorV3Interface private s_priceFeed;
-    
-    IERC20 immutable usdc;
+
+
+    event NftMinted(address user, uint256 tokenId);
 
     modifier onlyWhitelisted() {
         if (!s_whitelistedUsers[msg.sender]) {
             revert RaptorNFT__NotWhitelisted();
         }
+        _;
+    }
+
+    modifier onlySupportedTokens(address token) {
+        if (!s_supportedStableTokens[token]) {
+            revert RaptorNFT__TokenNotSupported();
+        }
+
         _;
     }
 
@@ -40,12 +51,11 @@ contract RaptorNFT is ERC721, Ownable {
         _;
     }
 
-    constructor(uint256 initialNftPrice, address _usdc, address _priceFeed)
+    constructor(uint256 initialNftPrice, address _priceFeed)
         ERC721("Raptor", "RR")
         Ownable(msg.sender)
     {
         s_nftPriceInUsd = initialNftPrice;
-        usdc = IERC20(_usdc);
         s_priceFeed = AggregatorV3Interface(_priceFeed);
     }
 
@@ -55,11 +65,15 @@ contract RaptorNFT is ERC721, Ownable {
         _mintNft(depositAmountInUsd);
     }
 
-    function mintNftWithUSDC(uint256 depositAmount) external onlyWhitelisted {
-        usdc.safeTransferFrom(msg.sender, address(this), depositAmount);
+    function mintNftWithStable(address token, uint256 depositAmount)
+        external
+        onlyWhitelisted
+        onlySupportedTokens(token)
+    {
+        IERC20(token).safeTransferFrom(msg.sender, address(this), depositAmount);
 
-        uint256 usdcDecimals = IERC20Metadata(address(usdc)).decimals();
-        uint256 scaledDepositAmount = depositAmount * (10 ** (18 - usdcDecimals));
+        uint256 tokenDecimals = IERC20Metadata(token).decimals();
+        uint256 scaledDepositAmount = depositAmount * (10 ** (18 - tokenDecimals));
 
         _mintNft(scaledDepositAmount);
     }
@@ -76,12 +90,22 @@ contract RaptorNFT is ERC721, Ownable {
         s_nftPriceInUsd = newPriceInUsd;
     }
 
+    function addStablecoinToSupportedTokens(address token) external onlyOwner {
+        s_supportedStableTokens[token] = true;
+    }
+
+    function removeStablecoinFromSupportedTokens(address token) external onlyOwner {
+        s_supportedStableTokens[token] = false;
+    }
+
     function _mintNft(uint256 depositAmountInUSD) internal {
         if (depositAmountInUSD < s_nftPriceInUsd) {
             revert RaptorNFT__NotEnoughFunds();
         }
 
         _mint(msg.sender, s_tokenIdCounter);
+
+        emit NftMinted(msg.sender, s_tokenIdCounter);
 
         s_tokenIdCounter++;
     }
