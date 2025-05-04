@@ -18,12 +18,11 @@ contract RaptorNFT is ERC721, Ownable {
     error RaptorNFT__AddressZero();
 
     uint256 public s_tokenIdCounter;
-
-    uint256 public constant NFT_PRICE_IN_USD = 50e18;
-
+    uint256 public s_nftPriceInUsd;
     mapping(address => bool) public s_whitelistedUsers;
 
     AggregatorV3Interface private s_priceFeed;
+    
     IERC20 immutable usdc;
 
     modifier onlyWhitelisted() {
@@ -41,7 +40,11 @@ contract RaptorNFT is ERC721, Ownable {
         _;
     }
 
-    constructor(address _usdc, address _priceFeed) ERC721("Raptor", "RR") Ownable(msg.sender) {
+    constructor(uint256 initialNftPrice, address _usdc, address _priceFeed)
+        ERC721("Raptor", "RR")
+        Ownable(msg.sender)
+    {
+        s_nftPriceInUsd = initialNftPrice;
         usdc = IERC20(_usdc);
         s_priceFeed = AggregatorV3Interface(_priceFeed);
     }
@@ -69,8 +72,12 @@ contract RaptorNFT is ERC721, Ownable {
         s_whitelistedUsers[user] = false;
     }
 
+    function changeNftPrice(uint256 newPriceInUsd) external onlyOwner {
+        s_nftPriceInUsd = newPriceInUsd;
+    }
+
     function _mintNft(uint256 depositAmountInUSD) internal {
-        if (depositAmountInUSD < NFT_PRICE_IN_USD) {
+        if (depositAmountInUSD < s_nftPriceInUsd) {
             revert RaptorNFT__NotEnoughFunds();
         }
 
