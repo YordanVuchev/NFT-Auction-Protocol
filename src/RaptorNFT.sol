@@ -3,9 +3,12 @@ pragma solidity ^0.8.20;
 
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-
+import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
+import {PriceConverter} from "./libraries/PriceConverter.sol";
 
 contract RaptorNFT is ERC721, Ownable {
+    using PriceConverter for uint256;
+
     error RaptorNFT__NotWhitelisted();
     error RaptorNFT__AddressZero();
 
@@ -13,7 +16,11 @@ contract RaptorNFT is ERC721, Ownable {
 
     mapping(address => bool) public s_whitelistedUsers;
 
-    constructor() ERC721("Raptor", "RR") Ownable(msg.sender) {}
+    AggregatorV3Interface private s_priceFeed;
+
+    constructor(address _priceFeed) ERC721("Raptor", "RR") Ownable(msg.sender) {
+        s_priceFeed = AggregatorV3Interface(_priceFeed);
+    }
 
     modifier onlyWhitelisted() {
         if (!s_whitelistedUsers[msg.sender]) {
@@ -23,11 +30,11 @@ contract RaptorNFT is ERC721, Ownable {
     }
 
     modifier notAddressZero(address addr) {
-      if(addr == address(0)){
-        revert RaptorNFT__AddressZero();
-      }
+        if (addr == address(0)) {
+            revert RaptorNFT__AddressZero();
+        }
 
-      _;
+        _;
     }
 
     function mintNftWithETH() external onlyWhitelisted {
@@ -41,6 +48,6 @@ contract RaptorNFT is ERC721, Ownable {
     }
 
     function removeUserFromWhitelist(address user) external onlyOwner notAddressZero(user) {
-      s_whitelistedUsers[user] = false;
+        s_whitelistedUsers[user] = false;
     }
 }
