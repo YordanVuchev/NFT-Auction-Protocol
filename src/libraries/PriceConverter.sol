@@ -13,7 +13,7 @@ library PriceConverter {
 
     function getConversionRate(uint256 ethAmount, AggregatorV3Interface priceFeed) internal view returns (uint256) {
         uint256 ethPriceInUSD = getPrice(priceFeed);
-        uint256 ethAmountInUsd = wmul(ethPrice, ethAmount);
+        uint256 ethAmountInUsd = wmul(ethPriceInUSD, ethAmount);
 
         return ethAmountInUsd;
     }
