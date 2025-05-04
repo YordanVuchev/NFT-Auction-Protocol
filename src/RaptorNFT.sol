@@ -3,24 +3,28 @@ pragma solidity ^0.8.20;
 
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
 import {PriceConverter} from "./libraries/PriceConverter.sol";
 
 contract RaptorNFT is ERC721, Ownable {
+    using SafeERC20 for IERC20;
     using PriceConverter for uint256;
 
+    error RaptorNFT__NotEnoughFunds();
     error RaptorNFT__NotWhitelisted();
     error RaptorNFT__AddressZero();
 
     uint256 public s_tokenIdCounter;
 
+    uint256 public constant NFT_PRICE_IN_USD = 50e18;
+
     mapping(address => bool) public s_whitelistedUsers;
 
     AggregatorV3Interface private s_priceFeed;
-
-    constructor(address _priceFeed) ERC721("Raptor", "RR") Ownable(msg.sender) {
-        s_priceFeed = AggregatorV3Interface(_priceFeed);
-    }
+    IERC20 immutable usdc;
 
     modifier onlyWhitelisted() {
         if (!s_whitelistedUsers[msg.sender]) {
@@ -37,10 +41,24 @@ contract RaptorNFT is ERC721, Ownable {
         _;
     }
 
-    function mintNftWithETH() external onlyWhitelisted {
-        _mint(msg.sender, s_tokenIdCounter);
+    constructor(address _usdc, address _priceFeed) ERC721("Raptor", "RR") Ownable(msg.sender) {
+        usdc = IERC20(_usdc);
+        s_priceFeed = AggregatorV3Interface(_priceFeed);
+    }
 
-        s_tokenIdCounter++;
+    function mintNftWithETH() external payable onlyWhitelisted {
+        uint256 depositAmountInUsd = msg.value.getConversionRate(s_priceFeed);
+
+        _mintNft(depositAmountInUsd);
+    }
+
+    function mintNftWithUSDC(uint256 depositAmount) external onlyWhitelisted {
+        usdc.safeTransferFrom(msg.sender, address(this), depositAmount);
+
+        uint256 usdcDecimals = IERC20Metadata(address(usdc)).decimals();
+        uint256 scaledDepositAmount = depositAmount * (10 ** (18 - usdcDecimals));
+
+        _mintNft(scaledDepositAmount);
     }
 
     function addUserToWhitelist(address user) external onlyOwner notAddressZero(user) {
@@ -49,5 +67,15 @@ contract RaptorNFT is ERC721, Ownable {
 
     function removeUserFromWhitelist(address user) external onlyOwner notAddressZero(user) {
         s_whitelistedUsers[user] = false;
+    }
+
+    function _mintNft(uint256 depositAmountInUSD) internal {
+        if (depositAmountInUSD < NFT_PRICE_IN_USD) {
+            revert RaptorNFT__NotEnoughFunds();
+        }
+
+        _mint(msg.sender, s_tokenIdCounter);
+
+        s_tokenIdCounter++;
     }
 }
