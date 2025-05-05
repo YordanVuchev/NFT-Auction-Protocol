@@ -58,10 +58,14 @@ contract Auction {
     s_highestBidder = msg.sender;
 
     userDeposits[msg.sender][s_auctionCycle] =  UserDeposit({depositAmount: depositAmount, auctionCycle: s_auctionCycle});
+
+    if(s_auctionEndTimestamp - Time.blockTs() <= 2 minutes){
+      s_auctionEndTimestamp += 5 minutes;
+    }
   }
 
 
-  
+
 
 
 
