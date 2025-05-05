@@ -14,9 +14,11 @@ contract Auction {
 
   uint256 public s_nftInitialPrice;
   uint256 public s_highestBidAmount;
-  address public s_highestBidder;
   uint256 s_auctionCycle;
+  uint256 s_minimumDepositAmount;
+
   uint32 s_auctionEndTimestamp;
+  address public s_highestBidder;
 
   struct UserDeposit {
     uint256 depositAmount;
@@ -28,10 +30,11 @@ contract Auction {
   RaptorNFT immutable nft;
   IERC20 immutable usdc;
 
-  constructor(address _nft, uint256 _nftInitialPrice, address _usdc) {
+  constructor(address _nft, uint256 _nftInitialPrice, uint256 _minimumDepositAmount ,address _usdc) {
     nft = RaptorNFT(_nft);
     s_nftInitialPrice = _nftInitialPrice;
     s_highestBidAmount = _nftInitialPrice;
+    s_minimumDepositAmount = _minimumDepositAmount;
     usdc = IERC20(_usdc);
 
     s_auctionCycle = 1;
@@ -45,7 +48,7 @@ contract Auction {
       revert Auction__AuctionHasEnded();
     }
 
-    if(depositAmount <= s_highestBidAmount) {
+    if(depositAmount <= s_highestBidAmount || depositAmount < s_minimumDepositAmount) {
       revert Auction__DepositTooLow();
     }
 
@@ -57,6 +60,9 @@ contract Auction {
     userDeposits[msg.sender][s_auctionCycle] =  UserDeposit({depositAmount: depositAmount, auctionCycle: s_auctionCycle});
   }
 
+
   
+
+
 
 }
