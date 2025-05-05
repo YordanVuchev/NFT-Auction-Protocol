@@ -41,7 +41,7 @@ library Time {
      * @param end The ending timestamp.
      * @return daysPassed The number of full days between the two timestamps.
      */
-    function dayGap(uint32 start, uint end) public pure returns (uint32 daysPassed) {
+    function dayGap(uint32 start, uint256 end) public pure returns (uint32 daysPassed) {
         assembly {
             daysPassed := div(sub(end, start), SECONDS_PER_DAY)
         }

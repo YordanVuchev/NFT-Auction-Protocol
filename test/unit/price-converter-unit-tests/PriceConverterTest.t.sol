@@ -34,10 +34,10 @@ contract PriceConverterTest is Test {
 
         priceFeed.updateRoundData(roundId, staleAnswer, updatedAt, startedAt);
 
-        (, ,, uint256 updatedAtHere, uint80 answeredInRound) = priceFeed.latestRoundData();
+        (,,, uint256 updatedAtHere, uint80 answeredInRound) = priceFeed.latestRoundData();
 
         vm.expectRevert();
-        uint256 price = this.getChainlinkPrice();        
+        uint256 price = this.getChainlinkPrice();
     }
 
     function testRevertsWhenPriceIsNegative() public {
@@ -47,7 +47,6 @@ contract PriceConverterTest is Test {
         this.getChainlinkPrice();
     }
 
-    
     function getChainlinkPrice() public returns (uint256) {
         return PriceConverter.getPrice(priceFeed, 30 minutes);
     }

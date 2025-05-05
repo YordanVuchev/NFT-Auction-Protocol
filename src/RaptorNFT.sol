@@ -8,6 +8,7 @@ import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IER
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
+import {Auction} from "./Auction.sol";
 import {PriceConverter} from "./libraries/PriceConverter.sol";
 import {wdiv} from "./utils/Math.sol";
 
@@ -17,6 +18,7 @@ contract RaptorNFT is ERC721, Ownable, ReentrancyGuard {
 
     error RaptorNFT__NotEnoughFunds();
     error RaptorNFT__NotWhitelisted();
+    error RaptorNFT__Unauthorized();
     error RaptorNFT__TokenNotSupported();
     error RaptorNFT__AddressZero();
     error RaptorNFT__RefundFailed();
@@ -30,6 +32,7 @@ contract RaptorNFT is ERC721, Ownable, ReentrancyGuard {
     string s_tokenURI;
 
     AggregatorV3Interface private s_priceFeed;
+    Auction private immutable auction;
 
     event NftMinted(address indexed user, uint256 indexed tokenId);
     event NftPriceChanged(uint256 indexed price);
@@ -58,6 +61,14 @@ contract RaptorNFT is ERC721, Ownable, ReentrancyGuard {
     modifier notAddressZero(address addr) {
         if (addr == address(0)) {
             revert RaptorNFT__AddressZero();
+        }
+
+        _;
+    }
+
+    modifier onlyAuction() {
+        if (msg.sender != address(auction)) {
+            revert RaptorNFT__Unauthorized();
         }
 
         _;
@@ -102,6 +113,14 @@ contract RaptorNFT is ERC721, Ownable, ReentrancyGuard {
         IERC20(token).safeTransferFrom(msg.sender, address(this), normalizedTokenAmount);
 
         _mintNft(s_nftPriceInUsd);
+    }
+
+    function mintNftToAuctionWinner(address winner) external onlyAuction {
+        _safeMint(winner, s_tokenIdCounter);
+
+        emit NftMinted(msg.sender, s_tokenIdCounter);
+
+        s_tokenIdCounter++;
     }
 
     function addUserToWhitelist(address user) external onlyOwner notAddressZero(user) {

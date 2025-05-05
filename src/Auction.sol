@@ -7,66 +7,92 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 contract Auction {
-  using SafeERC20 for IERC20;
+    using SafeERC20 for IERC20;
 
-  error Auction__DepositTooLow();
-  error Auction__AuctionHasEnded();
+    error Auction__DepositTooLow();
+    error Auction__AuctionHasEnded();
+    error Auction__AuctionActive();
+    error Auction__WinnerCannotRefund();
 
-  uint256 public s_nftInitialPrice;
-  uint256 public s_highestBidAmount;
-  uint256 s_auctionCycle;
-  uint256 s_minimumDepositAmount;
+    uint256 public s_nftInitialPrice;
+    uint256 public s_highestBidAmount;
+    uint256 s_auctionCycle;
+    uint256 s_minimumDepositAmount;
 
-  uint32 s_auctionEndTimestamp;
-  address public s_highestBidder;
+    uint32 s_auctionEndTimestamp;
+    address public s_highestBidder;
 
-  struct UserDeposit {
-    uint256 depositAmount;
-    uint256 auctionCycle;
-  }
-
-  mapping(address => mapping(uint256 s_auctionCycle => UserDeposit )) userDeposits;
-
-  RaptorNFT immutable nft;
-  IERC20 immutable usdc;
-
-  constructor(address _nft, uint256 _nftInitialPrice, uint256 _minimumDepositAmount ,address _usdc) {
-    nft = RaptorNFT(_nft);
-    s_nftInitialPrice = _nftInitialPrice;
-    s_highestBidAmount = _nftInitialPrice;
-    s_minimumDepositAmount = _minimumDepositAmount;
-    usdc = IERC20(_usdc);
-
-    s_auctionCycle = 1;
-    s_auctionEndTimestamp = Time.blockTs() + 2 hours;
-  }
-
-
-  function bid(uint256 depositAmount) external {
-
-    if(s_auctionEndTimestamp < Time.blockTs()) {
-      revert Auction__AuctionHasEnded();
+    struct UserDeposit {
+        uint256 depositAmount;
+        uint256 auctionCycle;
     }
 
-    if(depositAmount <= s_highestBidAmount || depositAmount < s_minimumDepositAmount) {
-      revert Auction__DepositTooLow();
+    mapping(address => mapping(uint256 s_auctionCycle => UserDeposit)) userDeposits;
+    mapping(uint256 => address) auctionWinners;
+
+    RaptorNFT immutable nft;
+    IERC20 immutable usdc;
+
+    constructor(address _nft, uint256 _nftInitialPrice, uint256 _minimumDepositAmount, address _usdc) {
+        nft = RaptorNFT(_nft);
+        s_nftInitialPrice = _nftInitialPrice;
+        s_highestBidAmount = _nftInitialPrice;
+        s_minimumDepositAmount = _minimumDepositAmount;
+        usdc = IERC20(_usdc);
+
+        s_auctionCycle = 1;
+        s_auctionEndTimestamp = Time.blockTs() + 2 hours;
     }
 
-    usdc.safeTransferFrom(msg.sender,address(this),depositAmount);
+    function bid(uint256 depositAmount) external {
+        if (s_auctionEndTimestamp < Time.blockTs()) {
+            revert Auction__AuctionHasEnded();
+        }
 
-    s_highestBidAmount = depositAmount;
-    s_highestBidder = msg.sender;
+        if (depositAmount <= s_highestBidAmount || depositAmount < s_minimumDepositAmount) {
+            revert Auction__DepositTooLow();
+        }
 
-    userDeposits[msg.sender][s_auctionCycle] =  UserDeposit({depositAmount: depositAmount, auctionCycle: s_auctionCycle});
+        usdc.safeTransferFrom(msg.sender, address(this), depositAmount);
 
-    if(s_auctionEndTimestamp - Time.blockTs() <= 2 minutes){
-      s_auctionEndTimestamp += 5 minutes;
+        s_highestBidAmount = depositAmount;
+        s_highestBidder = msg.sender;
+        auctionWinners[s_auctionCycle] = msg.sender;
+
+        userDeposits[msg.sender][s_auctionCycle] =
+            UserDeposit({depositAmount: depositAmount, auctionCycle: s_auctionCycle});
+
+        if (s_auctionEndTimestamp - Time.blockTs() <= 2 minutes) {
+            s_auctionEndTimestamp += 5 minutes;
+        }
     }
-  }
 
+    function refund(uint256 auctionCycle) external {
+        if (auctionCycle >= s_auctionCycle) {
+            revert Auction__AuctionActive();
+        }
 
+        if (auctionWinners[auctionCycle] == msg.sender) {
+            revert Auction__WinnerCannotRefund();
+        }
 
+        UserDeposit memory userDeposit = userDeposits[msg.sender][auctionCycle];
 
+        usdc.safeTransfer(msg.sender, userDeposit.depositAmount);
 
+        delete userDeposits[msg.sender][auctionCycle];
+    }
 
+    function mintNftToAuctionWinner() external {
+        if (Time.blockTs() < s_auctionEndTimestamp) {
+            revert Auction__AuctionActive();
+        }
+
+        nft.mintNftToAuctionWinner(s_highestBidder);
+
+        delete userDeposits[s_highestBidder][s_auctionCycle];
+
+        s_auctionCycle++;
+        s_auctionEndTimestamp = Time.blockTs() + 2 hours;
+    }
 }

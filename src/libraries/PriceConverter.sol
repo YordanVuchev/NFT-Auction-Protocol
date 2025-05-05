@@ -12,7 +12,7 @@ library PriceConverter {
 
     function getPrice(AggregatorV3Interface priceFeed, uint256 stalenessThreshold) internal view returns (uint256) {
         (uint80 roundId, int256 price,, uint256 updatedAt, uint80 answeredInRound) = priceFeed.latestRoundData();
-        
+
         if (price < 0) revert PriceConverter__InvalidPriceFeedData();
 
         if (answeredInRound < roundId) revert PriceConverter__StalePriceFeedData();
