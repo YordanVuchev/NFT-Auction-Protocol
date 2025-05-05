@@ -111,7 +111,7 @@ contract RaptorNFT is ERC721, Ownable, ReentrancyGuard {
             revert RaptorNFT__NotEnoughFunds();
         }
 
-        _mint(msg.sender, s_tokenIdCounter);
+        _safeMint(msg.sender, s_tokenIdCounter);
 
         emit NftMinted(msg.sender, s_tokenIdCounter);
 
