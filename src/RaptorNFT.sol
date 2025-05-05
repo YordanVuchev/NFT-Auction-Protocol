@@ -25,7 +25,6 @@ contract RaptorNFT is ERC721, Ownable {
 
     AggregatorV3Interface private s_priceFeed;
 
-
     event NftMinted(address user, uint256 tokenId);
 
     modifier onlyWhitelisted() {
@@ -51,10 +50,7 @@ contract RaptorNFT is ERC721, Ownable {
         _;
     }
 
-    constructor(uint256 initialNftPrice, address _priceFeed, address owner)
-        ERC721("Raptor", "RR")
-        Ownable(owner)
-    {
+    constructor(uint256 initialNftPrice, address _priceFeed, address owner) ERC721("Raptor", "RR") Ownable(owner) {
         s_nftPriceInUsd = initialNftPrice;
         s_priceFeed = AggregatorV3Interface(_priceFeed);
     }
@@ -110,9 +106,7 @@ contract RaptorNFT is ERC721, Ownable {
         s_tokenIdCounter++;
     }
 
-
     function tokenURI(uint256) public pure override returns (string memory) {
-      return "ipfs://bafkreihouvejsacfci5g67bbrsyxstp2g3vt4w6ctqd3fd6p5kssykdjfa";
-  }
-  
+        return "ipfs://bafkreihouvejsacfci5g67bbrsyxstp2g3vt4w6ctqd3fd6p5kssykdjfa";
+    }
 }
