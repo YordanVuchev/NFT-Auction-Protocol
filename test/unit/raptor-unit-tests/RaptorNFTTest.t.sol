@@ -5,10 +5,8 @@ import {RaptorNFTBaseTest} from "./RaptorNFTBaseTest.t.sol";
 import {RaptorNFT} from "../../../src/RaptorNFT.sol";
 
 contract RaptorNFTTest is RaptorNFTBaseTest {
-  
-
     function setUp() public override {
-      super.setUp();
+        super.setUp();
     }
 
     function testNameAndSymbolAreCorrertlyInitialized() public view {
@@ -104,8 +102,6 @@ contract RaptorNFTTest is RaptorNFTBaseTest {
         uint256 expectedStableBalance = INITIAL_USER_STABLE_BALANCE - depositAmount;
         assertEq(usdc.balanceOf(BOB), expectedStableBalance);
     }
-
-    
 
     function testMintWithStableRevertsWhenUserNotWhitelisted() public {
         uint256 depositAmount = INITIAL_NFT_PRICE / 1e12;
