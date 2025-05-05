@@ -95,7 +95,7 @@ contract RaptorNFTTest is RaptorNFTBaseTest {
         vm.startPrank(BOB);
 
         usdc.approve(address(nft), depositAmount);
-        nft.mintNftWithStable(address(usdc), depositAmount);
+        nft.mintNftWithStable(address(usdc));
 
         vm.stopPrank();
 
@@ -105,21 +105,7 @@ contract RaptorNFTTest is RaptorNFTBaseTest {
         assertEq(usdc.balanceOf(BOB), expectedStableBalance);
     }
 
-    function testMintWithStableRevertsWhenDepositAmountIsNotEnough() public {
-        _whitelistUser(BOB);
-        _whitelistToken(address(usdc));
-
-        uint256 depositAmount = 1;
-
-        vm.startPrank(BOB);
-
-        usdc.approve(address(nft), depositAmount);
-
-        vm.expectRevert(RaptorNFT.RaptorNFT__NotEnoughFunds.selector);
-        nft.mintNftWithStable(address(usdc), depositAmount);
-
-        vm.stopPrank();
-    }
+    
 
     function testMintWithStableRevertsWhenUserNotWhitelisted() public {
         uint256 depositAmount = INITIAL_NFT_PRICE / 1e12;
@@ -129,7 +115,7 @@ contract RaptorNFTTest is RaptorNFTBaseTest {
         usdc.approve(address(nft), depositAmount);
 
         vm.expectRevert(RaptorNFT.RaptorNFT__NotWhitelisted.selector);
-        nft.mintNftWithStable(address(usdc), depositAmount);
+        nft.mintNftWithStable(address(usdc));
 
         vm.stopPrank();
     }
@@ -144,7 +130,7 @@ contract RaptorNFTTest is RaptorNFTBaseTest {
         usdc.approve(address(nft), depositAmount);
 
         vm.expectRevert(RaptorNFT.RaptorNFT__TokenNotSupported.selector);
-        nft.mintNftWithStable(address(usdc), depositAmount);
+        nft.mintNftWithStable(address(usdc));
 
         vm.stopPrank();
     }

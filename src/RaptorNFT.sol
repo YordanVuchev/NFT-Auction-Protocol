@@ -76,18 +76,19 @@ contract RaptorNFT is ERC721, Ownable, ReentrancyGuard {
         }
     }
 
-    function mintNftWithStable(address token, uint256 depositAmount)
-        external
-        onlyWhitelisted
-        onlySupportedTokens(token)
-    {
-        IERC20(token).safeTransferFrom(msg.sender, address(this), depositAmount);
+    function mintNftWithStable(address token)
+    external
+    onlyWhitelisted
+    onlySupportedTokens(token)
+{
+    uint8 tokenDecimals = IERC20Metadata(token).decimals();
 
-        uint256 tokenDecimals = IERC20Metadata(token).decimals();
-        uint256 scaledDepositAmount = depositAmount * (10 ** (18 - tokenDecimals));
+    uint256 normalizedTokenAmount = s_nftPriceInUsd / (10 ** (18 - tokenDecimals));
+  
+    IERC20(token).safeTransferFrom(msg.sender, address(this), normalizedTokenAmount);
 
-        _mintNft(scaledDepositAmount);
-    }
+    _mintNft(s_nftPriceInUsd);
+}
 
     function addUserToWhitelist(address user) external onlyOwner notAddressZero(user) {
         s_whitelistedUsers[user] = true;
