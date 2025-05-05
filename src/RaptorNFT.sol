@@ -23,11 +23,11 @@ contract RaptorNFT is ERC721, Ownable, ReentrancyGuard {
 
     uint256 public s_tokenIdCounter;
     uint256 public s_nftPriceInUsd;
-    uint256 s_maxPriceFeedStalenessDuration;
+    uint256 s_priceFeedStalenessThreshold;
     mapping(address => bool) public s_whitelistedUsers;
     mapping(address => bool) public s_supportedStableTokens;
 
-    string public s_tokenURI;
+    string s_tokenURI;
 
     AggregatorV3Interface private s_priceFeed;
 
@@ -63,22 +63,25 @@ contract RaptorNFT is ERC721, Ownable, ReentrancyGuard {
         _;
     }
 
-    constructor(uint256 initialNftPrice, address _priceFeed, uint256 _maxStalenessMins, address owner, string memory _initialURI)
-        ERC721("Raptor", "RR")
-        Ownable(owner)
-    {
+    constructor(
+        uint256 initialNftPrice,
+        address _priceFeed,
+        uint256 _maxStalenessThreshold,
+        address owner,
+        string memory _initialURI
+    ) ERC721("Raptor", "RR") Ownable(owner) {
         s_nftPriceInUsd = initialNftPrice;
         s_priceFeed = AggregatorV3Interface(_priceFeed);
-        s_maxPriceFeedStalenessDuration = _maxStalenessMins;
+        s_priceFeedStalenessThreshold = _maxStalenessThreshold;
         s_tokenURI = _initialURI;
     }
 
     function mintNftWithETH() external payable onlyWhitelisted {
-        uint256 depositAmountInUsd = msg.value.getConversionRate(s_priceFeed,s_maxPriceFeedStalenessDuration);
+        uint256 depositAmountInUsd = msg.value.getConversionRate(s_priceFeed, s_priceFeedStalenessThreshold);
 
         _mintNft(depositAmountInUsd);
 
-        uint256 ethPriceInUsd = PriceConverter.getPrice(s_priceFeed, s_maxPriceFeedStalenessDuration);
+        uint256 ethPriceInUsd = PriceConverter.getPrice(s_priceFeed, s_priceFeedStalenessThreshold);
         uint256 requiredEth = wdiv(s_nftPriceInUsd, ethPriceInUsd);
 
         if (msg.value > requiredEth) {
@@ -131,16 +134,16 @@ contract RaptorNFT is ERC721, Ownable, ReentrancyGuard {
         emit TokenRemovedFromSupportedTokens(token);
     }
 
-    function setTokenUri(string memory newTokenUri) public onlyOwner {
+    function setTokenUri(string memory newTokenUri) external onlyOwner {
         s_tokenURI = newTokenUri;
 
         emit NftUriChanged(newTokenUri);
     }
 
     function setPriceFeedStalenessDuration(uint256 newStalenessDuration) external onlyOwner {
-      s_maxPriceFeedStalenessDuration = newStalenessDuration;
+        s_priceFeedStalenessThreshold = newStalenessDuration;
 
-      emit PriceFeedStalenessDurationChanged(newStalenessDuration);
+        emit PriceFeedStalenessDurationChanged(newStalenessDuration);
     }
 
     function _mintNft(uint256 depositAmountInUSD) internal nonReentrant {
@@ -157,5 +160,9 @@ contract RaptorNFT is ERC721, Ownable, ReentrancyGuard {
 
     function tokenURI(uint256) public view override returns (string memory) {
         return s_tokenURI;
+    }
+
+    function getPriceFeedStalenessDuration() public view returns (uint256) {
+        return s_priceFeedStalenessThreshold;
     }
 }
