@@ -6,11 +6,12 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
 import {PriceConverter} from "./libraries/PriceConverter.sol";
 import {wdiv} from "./utils/Math.sol";
 
-contract RaptorNFT is ERC721, Ownable {
+contract RaptorNFT is ERC721, Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
     using PriceConverter for uint256;
 
@@ -108,7 +109,7 @@ contract RaptorNFT is ERC721, Ownable {
         s_supportedStableTokens[token] = false;
     }
 
-    function _mintNft(uint256 depositAmountInUSD) internal {
+    function _mintNft(uint256 depositAmountInUSD) internal nonReentrant {
         if (depositAmountInUSD < s_nftPriceInUsd) {
             revert RaptorNFT__NotEnoughFunds();
         }
