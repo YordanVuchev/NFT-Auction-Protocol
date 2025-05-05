@@ -51,9 +51,9 @@ contract RaptorNFT is ERC721, Ownable {
         _;
     }
 
-    constructor(uint256 initialNftPrice, address _priceFeed)
+    constructor(uint256 initialNftPrice, address _priceFeed, address owner)
         ERC721("Raptor", "RR")
-        Ownable(msg.sender)
+        Ownable(owner)
     {
         s_nftPriceInUsd = initialNftPrice;
         s_priceFeed = AggregatorV3Interface(_priceFeed);
