@@ -109,4 +109,10 @@ contract RaptorNFT is ERC721, Ownable {
 
         s_tokenIdCounter++;
     }
+
+
+    function tokenURI(uint256) public pure override returns (string memory) {
+      return "ipfs://bafkreihouvejsacfci5g67bbrsyxstp2g3vt4w6ctqd3fd6p5kssykdjfa";
+  }
+  
 }
