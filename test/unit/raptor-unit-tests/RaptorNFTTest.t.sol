@@ -194,6 +194,30 @@ contract RaptorNFTTest is RaptorNFTBaseTest {
         nft.changeNftPrice(1e18);
     }
 
+    function testOwnerCanChangeNftURI() public {
+        vm.startPrank(OWNER);
+
+        string memory newUri = "ipfs://bafybeibc5sgo2plmjkq2tzmhrn54bk3crhnc23zd2msg4ea7a4pxrkgfna";
+
+        nft.setTokenUri(newUri);
+
+        vm.stopPrank();
+
+        assertEq(nft.tokenURI(0), newUri);
+    }
+
+    function testOwnerCanChangePriceFeedStalenessDuration() public {
+        vm.startPrank(OWNER);
+
+        uint256 newStalenessDuration = 1 hours;
+
+        nft.setPriceFeedStalenessDuration(newStalenessDuration);
+
+        vm.stopPrank();
+
+        assertEq(nft.getPriceFeedStalenessDuration(), newStalenessDuration);
+    }
+
     function _whitelistUser(address user) internal {
         vm.prank(OWNER);
         nft.addUserToWhitelist(user);
