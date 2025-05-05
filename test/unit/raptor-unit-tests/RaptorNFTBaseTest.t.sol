@@ -25,7 +25,8 @@ contract RaptorNFTBaseTest is Test {
 
     function setUp() public virtual {
         mockPriceFeed = new MockV3Aggregator(18, INITIAL_ETH_USD_PRICE);
-        nft = new RaptorNFT(INITIAL_NFT_PRICE, address(mockPriceFeed), INITIAL_STALENESS_DURATION ,OWNER, INITIAL_NFT_URI);
+        nft =
+            new RaptorNFT(INITIAL_NFT_PRICE, address(mockPriceFeed), INITIAL_STALENESS_DURATION, OWNER, INITIAL_NFT_URI);
         usdc = new MockERC20(6);
 
         vm.deal(BOB, INITIAL_USER_BALANCE);
