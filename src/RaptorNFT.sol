@@ -23,6 +23,7 @@ contract RaptorNFT is ERC721, Ownable, ReentrancyGuard {
 
     uint256 public s_tokenIdCounter;
     uint256 public s_nftPriceInUsd;
+    uint256 s_maxPriceFeedStalenessDuration;
     mapping(address => bool) public s_whitelistedUsers;
     mapping(address => bool) public s_supportedStableTokens;
 
@@ -37,6 +38,7 @@ contract RaptorNFT is ERC721, Ownable, ReentrancyGuard {
     event TokenAddedToSupportedTokens(address indexed token);
     event TokenRemovedFromSupportedTokens(address indexed token);
     event NftUriChanged(string indexed uri);
+    event PriceFeedStalenessDurationChanged(uint256 indexed duration);
 
     modifier onlyWhitelisted() {
         if (!s_whitelistedUsers[msg.sender]) {
@@ -61,21 +63,22 @@ contract RaptorNFT is ERC721, Ownable, ReentrancyGuard {
         _;
     }
 
-    constructor(uint256 initialNftPrice, address _priceFeed, address owner, string memory _initialURI)
+    constructor(uint256 initialNftPrice, address _priceFeed, uint256 _maxStalenessMins, address owner, string memory _initialURI)
         ERC721("Raptor", "RR")
         Ownable(owner)
     {
         s_nftPriceInUsd = initialNftPrice;
         s_priceFeed = AggregatorV3Interface(_priceFeed);
+        s_maxPriceFeedStalenessDuration = _maxStalenessMins;
         s_tokenURI = _initialURI;
     }
 
     function mintNftWithETH() external payable onlyWhitelisted {
-        uint256 depositAmountInUsd = msg.value.getConversionRate(s_priceFeed);
+        uint256 depositAmountInUsd = msg.value.getConversionRate(s_priceFeed,s_maxPriceFeedStalenessDuration);
 
         _mintNft(depositAmountInUsd);
 
-        uint256 ethPriceInUsd = PriceConverter.getPrice(s_priceFeed);
+        uint256 ethPriceInUsd = PriceConverter.getPrice(s_priceFeed, s_maxPriceFeedStalenessDuration);
         uint256 requiredEth = wdiv(s_nftPriceInUsd, ethPriceInUsd);
 
         if (msg.value > requiredEth) {
@@ -132,6 +135,12 @@ contract RaptorNFT is ERC721, Ownable, ReentrancyGuard {
         s_tokenURI = newTokenUri;
 
         emit NftUriChanged(newTokenUri);
+    }
+
+    function setPriceFeedStalenessDuration(uint256 newStalenessDuration) external onlyOwner {
+      s_maxPriceFeedStalenessDuration = newStalenessDuration;
+
+      emit PriceFeedStalenessDurationChanged(newStalenessDuration);
     }
 
     function _mintNft(uint256 depositAmountInUSD) internal nonReentrant {

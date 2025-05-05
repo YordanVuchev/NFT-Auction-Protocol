@@ -8,22 +8,22 @@ library PriceConverter {
     error PriceConverter__InvalidPriceFeedData();
     error PriceConverter__StalePriceFeedData();
 
-    function getPrice(AggregatorV3Interface priceFeed) internal view returns (uint256) {
+    function getPrice(AggregatorV3Interface priceFeed, uint256 maxStalenessMins) internal view returns (uint256) {
         (uint80 roundId, int256 price,, uint256 updatedAt, uint80 answeredInRound) = priceFeed.latestRoundData();
 
         if (price < 0) revert PriceConverter__InvalidPriceFeedData();
 
         if (answeredInRound < roundId) revert PriceConverter__StalePriceFeedData();
 
-        if (block.timestamp - updatedAt > 30 minutes) {
+        if (block.timestamp - updatedAt > maxStalenessMins) {
             revert PriceConverter__StalePriceFeedData();
         }
 
         return uint256(price) * (10 ** (18 - priceFeed.decimals()));
     }
 
-    function getConversionRate(uint256 ethAmount, AggregatorV3Interface priceFeed) internal view returns (uint256) {
-        uint256 ethPriceInUSD = getPrice(priceFeed);
+    function getConversionRate(uint256 ethAmount, AggregatorV3Interface priceFeed,uint256 maxStalenessMins) internal view returns (uint256) {
+        uint256 ethPriceInUSD = getPrice(priceFeed, maxStalenessMins);
         uint256 ethAmountInUsd = wmul(ethPriceInUSD, ethAmount);
 
         return ethAmountInUsd;
