@@ -30,7 +30,13 @@ contract RaptorNFT is ERC721, Ownable, ReentrancyGuard {
 
     AggregatorV3Interface private s_priceFeed;
 
-    event NftMinted(address user, uint256 tokenId);
+    event NftMinted(address indexed user, uint256 indexed tokenId);
+    event NftPriceChanged(uint256 indexed price);
+    event UserAddedToWhitelist(address indexed user);
+    event UserRemovedFromWhitelist(address indexed user);
+    event TokenAddedToSupportedTokens(address indexed token);
+    event TokenRemovedFromSupportedTokens(address indexed token);
+    event NftUriChanged(string indexed uri);
 
     modifier onlyWhitelisted() {
         if (!s_whitelistedUsers[msg.sender]) {
@@ -55,7 +61,10 @@ contract RaptorNFT is ERC721, Ownable, ReentrancyGuard {
         _;
     }
 
-    constructor(uint256 initialNftPrice, address _priceFeed, address owner, string memory _initialURI) ERC721("Raptor", "RR") Ownable(owner) {
+    constructor(uint256 initialNftPrice, address _priceFeed, address owner, string memory _initialURI)
+        ERC721("Raptor", "RR")
+        Ownable(owner)
+    {
         s_nftPriceInUsd = initialNftPrice;
         s_priceFeed = AggregatorV3Interface(_priceFeed);
         s_tokenURI = _initialURI;
@@ -91,26 +100,38 @@ contract RaptorNFT is ERC721, Ownable, ReentrancyGuard {
 
     function addUserToWhitelist(address user) external onlyOwner notAddressZero(user) {
         s_whitelistedUsers[user] = true;
+
+        emit UserAddedToWhitelist(user);
     }
 
     function removeUserFromWhitelist(address user) external onlyOwner notAddressZero(user) {
         s_whitelistedUsers[user] = false;
+
+        emit UserRemovedFromWhitelist(user);
     }
 
     function changeNftPrice(uint256 newPriceInUsd) external onlyOwner {
         s_nftPriceInUsd = newPriceInUsd;
+
+        emit NftPriceChanged(newPriceInUsd);
     }
 
     function addStablecoinToSupportedTokens(address token) external onlyOwner {
         s_supportedStableTokens[token] = true;
+
+        emit TokenAddedToSupportedTokens(token);
     }
 
     function removeStablecoinFromSupportedTokens(address token) external onlyOwner {
         s_supportedStableTokens[token] = false;
+
+        emit TokenRemovedFromSupportedTokens(token);
     }
 
     function setTokenUri(string memory newTokenUri) public onlyOwner {
-      s_tokenURI = newTokenUri;
+        s_tokenURI = newTokenUri;
+
+        emit NftUriChanged(newTokenUri);
     }
 
     function _mintNft(uint256 depositAmountInUSD) internal nonReentrant {
