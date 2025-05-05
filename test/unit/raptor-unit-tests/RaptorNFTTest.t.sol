@@ -15,7 +15,7 @@ contract RaptorNFTTest is RaptorNFTBaseTest {
     }
 
     function testUriIsCorrect() public view {
-        assertEq(nft.tokenURI(1), NFT_URI);
+        assertEq(nft.tokenURI(1), INITIAL_NFT_URI);
     }
 
     function testMintWithEthMintsNftToUserAndTakesCorrectAmountOfEth() public {

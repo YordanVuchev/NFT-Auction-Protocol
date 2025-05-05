@@ -26,6 +26,8 @@ contract RaptorNFT is ERC721, Ownable, ReentrancyGuard {
     mapping(address => bool) public s_whitelistedUsers;
     mapping(address => bool) public s_supportedStableTokens;
 
+    string public s_tokenURI;
+
     AggregatorV3Interface private s_priceFeed;
 
     event NftMinted(address user, uint256 tokenId);
@@ -53,9 +55,10 @@ contract RaptorNFT is ERC721, Ownable, ReentrancyGuard {
         _;
     }
 
-    constructor(uint256 initialNftPrice, address _priceFeed, address owner) ERC721("Raptor", "RR") Ownable(owner) {
+    constructor(uint256 initialNftPrice, address _priceFeed, address owner, string memory _initialURI) ERC721("Raptor", "RR") Ownable(owner) {
         s_nftPriceInUsd = initialNftPrice;
         s_priceFeed = AggregatorV3Interface(_priceFeed);
+        s_tokenURI = _initialURI;
     }
 
     function mintNftWithETH() external payable onlyWhitelisted {
@@ -106,6 +109,10 @@ contract RaptorNFT is ERC721, Ownable, ReentrancyGuard {
         s_supportedStableTokens[token] = false;
     }
 
+    function setTokenUri(string memory newTokenUri) public onlyOwner {
+      s_tokenURI = newTokenUri;
+    }
+
     function _mintNft(uint256 depositAmountInUSD) internal nonReentrant {
         if (depositAmountInUSD < s_nftPriceInUsd) {
             revert RaptorNFT__NotEnoughFunds();
@@ -118,7 +125,7 @@ contract RaptorNFT is ERC721, Ownable, ReentrancyGuard {
         s_tokenIdCounter++;
     }
 
-    function tokenURI(uint256) public pure override returns (string memory) {
-        return "ipfs://bafkreihouvejsacfci5g67bbrsyxstp2g3vt4w6ctqd3fd6p5kssykdjfa";
+    function tokenURI(uint256) public view override returns (string memory) {
+        return s_tokenURI;
     }
 }
