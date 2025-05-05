@@ -5,8 +5,19 @@ import {wmul} from "../utils/Math.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
 
 library PriceConverter {
+    error PriceConverter__InvalidPriceFeedData();
+    error PriceConverter__StalePriceFeedData();
+
     function getPrice(AggregatorV3Interface priceFeed) internal view returns (uint256) {
-        (, int256 price,,,) = priceFeed.latestRoundData();
+        (uint80 roundId, int256 price,, uint256 updatedAt, uint80 answeredInRound) = priceFeed.latestRoundData();
+
+        if (price < 0) revert PriceConverter__InvalidPriceFeedData();
+
+        if (answeredInRound < roundId) revert PriceConverter__StalePriceFeedData();
+
+        if (block.timestamp - updatedAt > 30 minutes) {
+            revert PriceConverter__StalePriceFeedData();
+        }
 
         return uint256(price) * (10 ** (18 - priceFeed.decimals()));
     }
