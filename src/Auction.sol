@@ -65,7 +65,8 @@ contract Auction is Ownable {
     }
 
     function bid(uint256 depositAmount) external updateAuction {
-        if (depositAmount <= s_highestBidAmount || depositAmount < s_minimumDepositAmount) {
+        if (depositAmount <= s_highestBidAmount 
+            || depositAmount < s_highestBidAmount + s_minimumDepositAmount) {
             revert Auction__DepositTooLow();
         }
 
