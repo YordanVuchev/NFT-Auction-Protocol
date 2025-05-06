@@ -55,9 +55,9 @@ contract Auction is Ownable {
         Ownable(owner)
     {
         nft = RaptorNFT(_nft);
-        s_highestBidAmount = _nftInitialPrice;
         s_auctionInitialPrice = _nftInitialPrice;
         s_minimumDepositAmount = _minimumDepositAmount;
+        s_highestBidAmount = _nftInitialPrice - _minimumDepositAmount;
         usdc = IERC20(_usdc);
 
         s_auctionCycle = 1;
