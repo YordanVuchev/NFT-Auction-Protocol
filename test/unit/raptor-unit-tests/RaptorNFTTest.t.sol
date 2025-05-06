@@ -1,7 +1,7 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import {BaseTest} from "../BaseTest.sol";
+import {BaseTest} from "../../base/BaseTest.sol";
 import {RaptorNFT} from "../../../src/RaptorNFT.sol";
 
 contract RaptorNFTTest is BaseTest {
