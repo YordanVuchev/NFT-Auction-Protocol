@@ -1,66 +1,20 @@
-## Foundry
+# 🦖 RaptorNFT: Dual-Mode NFT Auction Protocol
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+RaptorNFT is a flexible NFT minting protocol that supports two distinct acquisition methods:
 
-Foundry consists of:
+## 🎟️ 1. Whitelisted Minting
 
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+Whitelisted users can **purchase the NFT directly** at a fixed USD price using either **ETH** or **Supported Stablecoins**.
 
-## Documentation
+- The NFT price is set by the contract **owner**.
+- ETH payments are converted using Chainlink's ETH/USD price feed.
+- Any **overpayment in ETH is refunded** automatically.
 
-https://book.getfoundry.sh/
+## 🏆 2. English-Style Public Auctions
 
-## Usage
+Non-whitelisted users can participate in a **2-hour recurring English Auction**:
 
-### Build
-
-```shell
-$ forge build
-```
-
-### Test
-
-```shell
-$ forge test
-```
-
-### Format
-
-```shell
-$ forge fmt
-```
-
-### Gas Snapshots
-
-```shell
-$ forge snapshot
-```
-
-### Anvil
-
-```shell
-$ anvil
-```
-
-### Deploy
-
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
-
-### Cast
-
-```shell
-$ cast <subcommand>
-```
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
-```
+- Each auction cycle lasts **2 hours**.
+- Bids are placed using **USDC**.
+- The **highest bidder** at the end of each auction cycle gets the NFT **automatically minted**.
+- Auction cycles automatically roll over, resetting the bid state while preserving winner history.
