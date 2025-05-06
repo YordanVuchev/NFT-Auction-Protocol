@@ -93,14 +93,24 @@ contract AuctionTest is BaseTest {
         vm.stopPrank();
     }
 
-    function testPreviousBidderGetsRefunded() public initialBid {
+    function testPreviousBidderCanSuccessfullyRefund() public initialBid {
         vm.startPrank(OUTBIDDER);
 
         auction.bid(INITIAL_BIDDER_DEPOSIT + MIN_AUCTION_DEPOSIT_AMOUNT);
 
         vm.stopPrank();
 
+        vm.prank(BIDDER);
+        auction.refund();
+
         assertEq(usdc.balanceOf(BIDDER), INITIAL_BIDDER_BALANCE);
+    }
+
+    function testRefundRevertsWhenThereIsNothingToRefund() public {
+
+        vm.prank(BIDDER);
+        vm.expectRevert(Auction.Auction__NothingToRefund.selector);
+        auction.refund();
     }
 
     function testHighestBidAmountGetsUpdatedCorrectly() public initialBid outBidInitialBidder {

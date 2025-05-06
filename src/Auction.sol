@@ -15,6 +15,7 @@ contract Auction is Ownable {
     error Auction__AuctionActive();
     error Auction__RewardClaimed();
     error Auction__BidAlreadyClaimed();
+    error Auction__NothingToRefund();
 
     uint256 public s_highestBidAmount;
     uint256 public s_auctionInitialPrice;
@@ -125,9 +126,15 @@ contract Auction is Ownable {
     }
 
     function refund() external {
-        usdc.safeTransfer(msg.sender,s_refunds[msg.sender]);
+        uint256 refundAmount = s_refunds[msg.sender];
+        
+        if(refundAmount == 0) {
+            revert Auction__NothingToRefund();
+        }
 
-        emit BidderRefunded(msg.sender,s_refunds[msg.sender]);
+        usdc.safeTransfer(msg.sender,refundAmount);
+
+        emit BidderRefunded(msg.sender,refundAmount);
 
         s_refunds[msg.sender] = 0;
     }
