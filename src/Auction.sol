@@ -2,11 +2,12 @@
 pragma solidity ^0.8.28;
 
 import {RaptorNFT} from "./RaptorNFT.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Time} from "./libraries/Time.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-contract Auction {
+contract Auction is Ownable  {
     using SafeERC20 for IERC20;
 
     error Auction__DepositTooLow();
@@ -22,6 +23,8 @@ contract Auction {
     uint32 s_auctionEndTimestamp;
     address public s_highestBidder;
 
+    uint32 public constant AUCTION_MIN_DURATION = 2 hours;
+
     struct UserDeposit {
         uint256 depositAmount;
         uint256 auctionCycle;
@@ -33,7 +36,7 @@ contract Auction {
     RaptorNFT immutable nft;
     IERC20 immutable usdc;
 
-    constructor(address _nft, uint256 _nftInitialPrice, uint256 _minimumDepositAmount, address _usdc) {
+    constructor(address _nft, uint256 _nftInitialPrice, uint256 _minimumDepositAmount, address _usdc, address owner) Ownable(owner) {
         nft = RaptorNFT(_nft);
         s_nftInitialPrice = _nftInitialPrice;
         s_highestBidAmount = _nftInitialPrice;
@@ -41,7 +44,7 @@ contract Auction {
         usdc = IERC20(_usdc);
 
         s_auctionCycle = 1;
-        s_auctionEndTimestamp = Time.blockTs() + 2 hours;
+        s_auctionEndTimestamp = Time.blockTs() + AUCTION_MIN_DURATION;
     }
 
     function bid(uint256 depositAmount) external {
@@ -93,6 +96,15 @@ contract Auction {
         delete userDeposits[s_highestBidder][s_auctionCycle];
 
         s_auctionCycle++;
-        s_auctionEndTimestamp = Time.blockTs() + 2 hours;
+        s_auctionEndTimestamp = Time.blockTs() + AUCTION_MIN_DURATION;
+        s_highestBidder = address(0);
+        s_highestBidAmount = 0;
+    }
+
+
+    function claimAuctionWinnings() external onlyOwner {
+      uint256 usdcBalance = usdc.balanceOf(address(this));
+
+      usdc.safeTransfer(owner(), usdcBalance);
     }
 }
