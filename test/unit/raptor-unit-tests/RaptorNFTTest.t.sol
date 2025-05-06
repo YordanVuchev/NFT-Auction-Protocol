@@ -1,10 +1,10 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.28;
 
-import {RaptorNFTBaseTest} from "./RaptorNFTBaseTest.t.sol";
+import {BaseTest} from "../BaseTest.sol";
 import {RaptorNFT} from "../../../src/RaptorNFT.sol";
 
-contract RaptorNFTTest is RaptorNFTBaseTest {
+contract RaptorNFTTest is BaseTest {
     function setUp() public override {
         super.setUp();
     }
