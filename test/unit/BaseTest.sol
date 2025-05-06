@@ -13,16 +13,12 @@ contract BaseTest is Test {
     MockV3Aggregator mockPriceFeed;
     MockERC20 usdc;
 
-    string constant NFT_NAME = "Raptor";
-    string constant NFT_SYMBOL = "RR";
     string constant INITIAL_NFT_URI = "ipfs://bafkreihouvejsacfci5g67bbrsyxstp2g3vt4w6ctqd3fd6p5kssykdjfa";
     address OWNER = makeAddr("owner");
-    address BOB = makeAddr("bob");
 
     int256 INITIAL_ETH_USD_PRICE = 2000e18;
     uint256 public constant INITIAL_NFT_PRICE = 50e18;
-    uint256 public constant INITIAL_USER_BALANCE = 10 ether;
-    uint256 public constant INITIAL_USER_STABLE_BALANCE = 1000e6;
+    
     uint256 public constant INITIAL_STALENESS_DURATION = 30 minutes;
 
     uint256 public constant INITIAL_AUCTION_NFT_PRICE = 30e6;
@@ -41,7 +37,5 @@ contract BaseTest is Test {
         vm.prank(OWNER);
         nft.setAuctionAddress(address(auction));
 
-        vm.deal(BOB, INITIAL_USER_BALANCE);
-        usdc.mint(BOB, INITIAL_USER_STABLE_BALANCE);
     }
 }

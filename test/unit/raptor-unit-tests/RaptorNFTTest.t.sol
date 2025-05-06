@@ -5,8 +5,20 @@ import {BaseTest} from "../BaseTest.sol";
 import {RaptorNFT} from "../../../src/RaptorNFT.sol";
 
 contract RaptorNFTTest is BaseTest {
+
+    string constant NFT_NAME = "Raptor";
+    string constant NFT_SYMBOL = "RR";
+    uint256 public constant INITIAL_USER_BALANCE = 10 ether;
+    uint256 public constant INITIAL_USER_STABLE_BALANCE = 1000e6;
+
+    address BOB = makeAddr("bob");
+
+
     function setUp() public override {
         super.setUp();
+
+        vm.deal(BOB, INITIAL_USER_BALANCE);
+        usdc.mint(BOB, INITIAL_USER_STABLE_BALANCE);
     }
 
     function testNameAndSymbolAreCorrertlyInitialized() public view {
