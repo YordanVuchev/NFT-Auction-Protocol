@@ -85,7 +85,7 @@ contract Auction is Ownable {
         AuctionBidder storage currentBidder = s_highestBidders[s_auctionCycle];
 
         if (currentBidder.bidder != address(0)) {
-            s_refunds[currentBidder.bidder] +=  currentBidder.bidAmount;
+            s_refunds[currentBidder.bidder] += currentBidder.bidAmount;
         }
 
         currentBidder.bidAmount = depositAmount;
@@ -127,14 +127,14 @@ contract Auction is Ownable {
 
     function refund() external {
         uint256 refundAmount = s_refunds[msg.sender];
-        
-        if(refundAmount == 0) {
+
+        if (refundAmount == 0) {
             revert Auction__NothingToRefund();
         }
 
-        usdc.safeTransfer(msg.sender,refundAmount);
+        usdc.safeTransfer(msg.sender, refundAmount);
 
-        emit BidderRefunded(msg.sender,refundAmount);
+        emit BidderRefunded(msg.sender, refundAmount);
 
         s_refunds[msg.sender] = 0;
     }

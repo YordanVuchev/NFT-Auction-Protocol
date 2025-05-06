@@ -107,7 +107,6 @@ contract AuctionTest is BaseTest {
     }
 
     function testRefundRevertsWhenThereIsNothingToRefund() public {
-
         vm.prank(BIDDER);
         vm.expectRevert(Auction.Auction__NothingToRefund.selector);
         auction.refund();
