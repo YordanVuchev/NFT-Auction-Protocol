@@ -218,6 +218,13 @@ contract RaptorNFTTest is BaseTest {
         assertEq(nft.getPriceFeedStalenessDuration(), newStalenessDuration);
     }
 
+    function testOnlyAuctionCanCallMintNftToAuctionWinner() public {
+
+        vm.prank(BOB);
+        vm.expectRevert(RaptorNFT.RaptorNFT__Unauthorized.selector);
+        nft.mintNftToAuctionWinner(BOB);
+    }
+
     function _whitelistUser(address user) internal {
         vm.prank(OWNER);
         nft.addUserToWhitelist(user);
@@ -227,4 +234,5 @@ contract RaptorNFTTest is BaseTest {
         vm.prank(OWNER);
         nft.addStablecoinToSupportedTokens(token);
     }
+
 }

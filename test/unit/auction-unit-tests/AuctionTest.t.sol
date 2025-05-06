@@ -11,6 +11,7 @@ contract AuctionTest is BaseTest {
 
   uint256 INITIAL_BIDDER_BALANCE = 100e6;
   uint256 INITIAL_BIDDER_DEPOSIT = INITIAL_AUCTION_NFT_PRICE + 10e6;
+  uint256 NEXT_AUCTION_SKIP_TIME = 3 hours;
 
   function setUp() public override {
       super.setUp();
@@ -130,5 +131,93 @@ contract AuctionTest is BaseTest {
     uint256 updatedAuctionEndTs = auction.s_auctionEndTimestamp();
 
     assertEq(updatedAuctionEndTs, initialAuctionEndTs + 5 minutes);
+  }
+
+  function testMintToAuctionWinnerMintsNFTToHighestBidder() public initialBid outBidInitialBidder {
+
+    skip(NEXT_AUCTION_SKIP_TIME);
+
+
+    vm.expectEmit(true, false, false, false);
+    emit Auction.NftClaimed(OUTBIDDER);
+    auction.mintNftToAuctionWinner(1);
+
+    assertEq(nft.balanceOf(OUTBIDDER),1);
+  }
+
+  function testMintRevertsIfAuctionHasNotEnded() public initialBid {
+
+    vm.expectRevert(Auction.Auction__AuctionActive.selector);
+    auction.mintNftToAuctionWinner(1);  
+  }
+
+  function testMintRevertsIfWinnerTriesClaimingTwice() public initialBid outBidInitialBidder {
+    vm.startPrank(OUTBIDDER);
+
+    skip(NEXT_AUCTION_SKIP_TIME);
+    auction.mintNftToAuctionWinner(1);  
+
+    vm.expectRevert(Auction.Auction__RewardClaimed.selector);
+    auction.mintNftToAuctionWinner(1);
+
+    vm.stopPrank();
+  }
+
+
+  function testWinningsSendsCorrectAmountToOwner() public initialBid {
+
+    skip(NEXT_AUCTION_SKIP_TIME);
+
+    vm.startPrank(OWNER);
+
+    uint256 previousUSDCBalance = usdc.balanceOf(OWNER);
+
+    auction.claimAuctionWinnings(1);
+
+    uint256 afterUSDCBalance = usdc.balanceOf(OWNER);
+
+    vm.stopPrank();
+
+    Auction.AuctionBidder memory bidderStruct = auction.getAuctionBidder(1);
+
+    assertEq(afterUSDCBalance - previousUSDCBalance,bidderStruct.bidAmount);
+  }
+
+  function testWinningsRevertIfOwnerTriesToClaimTwice() public initialBid {
+
+    skip(NEXT_AUCTION_SKIP_TIME);
+
+    vm.startPrank(OWNER);
+
+    auction.claimAuctionWinnings(1);
+
+    vm.expectRevert(Auction.Auction__BidAlreadyClaimed.selector);
+    auction.claimAuctionWinnings(1);
+
+    vm.stopPrank();
+  }
+
+  function testStateGetsResetWhenNewAuctionHasStarted() public {
+    skip(NEXT_AUCTION_SKIP_TIME);
+
+    vm.startPrank(BIDDER);
+
+    auction.bid(INITIAL_BIDDER_DEPOSIT);
+
+    vm.stopPrank();
+
+    assertEq(auction.s_auctionCycle(), 2);
+    assertEq(auction.s_highestBidAmount(), INITIAL_BIDDER_DEPOSIT);
+  }
+
+
+  function testOwnerCanUpdateInitialNFTPrice() public {
+    vm.startPrank(OWNER);
+
+    auction.setAuctionInitialPrice(10e6);
+
+    vm.stopPrank();
+
+    assertEq(auction.s_auctionInitialPrice(), 10e6);
   }
 }

@@ -32,7 +32,7 @@ contract RaptorNFT is ERC721, Ownable, ReentrancyGuard {
     string s_tokenURI;
 
     AggregatorV3Interface private s_priceFeed;
-    Auction private immutable auction;
+    Auction private auction;
 
     event NftMinted(address indexed user, uint256 indexed tokenId);
     event NftPriceChanged(uint256 indexed price);
@@ -163,6 +163,10 @@ contract RaptorNFT is ERC721, Ownable, ReentrancyGuard {
         s_priceFeedStalenessThreshold = newStalenessDuration;
 
         emit PriceFeedStalenessDurationChanged(newStalenessDuration);
+    }
+
+    function setAuctionAddress(address _auction) external onlyOwner {
+        auction = Auction(_auction);
     }
 
     function _mintNft(uint256 depositAmountInUSD) internal nonReentrant {

@@ -18,7 +18,7 @@ contract Auction is Ownable {
 
     uint256 public s_highestBidAmount;
     uint256 public s_auctionInitialPrice;
-    uint256 s_auctionCycle;
+    uint256 public s_auctionCycle;
     uint256 s_minimumDepositAmount;
 
     uint32 public s_auctionEndTimestamp;
@@ -49,6 +49,16 @@ contract Auction is Ownable {
         }
 
         _;
+    }
+
+    modifier auctionHasEnded(uint256 auctionCycle) {
+
+        if (auctionCycle >= s_auctionCycle && Time.blockTs() < s_auctionEndTimestamp) {
+            revert Auction__AuctionActive();
+        }
+
+       _;
+
     }
 
     constructor(address _nft, uint256 _nftInitialPrice, uint256 _minimumDepositAmount, address _usdc, address owner)
@@ -89,10 +99,8 @@ contract Auction is Ownable {
         emit BidPlaced(msg.sender,depositAmount);
     }
 
-    function mintNftToAuctionWinner(uint256 auctionCycle) external {
-        if (auctionCycle >= s_auctionCycle) {
-            revert Auction__AuctionActive();
-        }
+    function mintNftToAuctionWinner(uint256 auctionCycle) external auctionHasEnded(auctionCycle) {
+    
 
         AuctionBidder storage currentBidder = s_highestBidders[auctionCycle];
 
@@ -107,12 +115,9 @@ contract Auction is Ownable {
         emit NftClaimed(currentBidder.bidder);
     }
 
-    function claimAuctionWinnings(uint256 auctionCycle) external onlyOwner {
+    function claimAuctionWinnings(uint256 auctionCycle) external onlyOwner auctionHasEnded(auctionCycle) {
 
-      if (auctionCycle >= s_auctionCycle) {
-        revert Auction__AuctionActive();
-      }
-
+     
       AuctionBidder storage bidder = s_highestBidders[auctionCycle];
 
       if(bidder.bidClaimed){

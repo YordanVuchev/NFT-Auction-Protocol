@@ -38,6 +38,9 @@ contract BaseTest is Test {
 
         auction = new Auction(address(nft),INITIAL_AUCTION_NFT_PRICE,MIN_AUCTION_DEPOSIT_AMOUNT, address(usdc), OWNER);
 
+        vm.prank(OWNER);
+        nft.setAuctionAddress(address(auction));
+
         vm.deal(BOB, INITIAL_USER_BALANCE);
         usdc.mint(BOB, INITIAL_USER_STABLE_BALANCE);
     }
