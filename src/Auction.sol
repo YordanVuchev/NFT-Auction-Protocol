@@ -33,6 +33,9 @@ contract Auction is Ownable {
     RaptorNFT immutable nft;
     IERC20 immutable usdc;
 
+    event BidPlaced(address indexed user, uint256 indexed amount);
+    event NftClaimed(address indexed winner);
+
     modifier updateAuction() {
         if (Time.blockTs() > s_auctionEndTimestamp) {
             s_auctionEndTimestamp = Time.blockTs() + AUCTION_MIN_DURATION;
@@ -75,6 +78,8 @@ contract Auction is Ownable {
         if (s_auctionEndTimestamp - Time.blockTs() <= 2 minutes) {
             s_auctionEndTimestamp += 5 minutes;
         }
+
+        emit BidPlaced(msg.sender,depositAmount);
     }
 
     function mintNftToAuctionWinner(uint256 auctionCycle) external {
@@ -91,6 +96,8 @@ contract Auction is Ownable {
         nft.mintNftToAuctionWinner(currentBidder.bidder);
 
         delete s_highestBidders[auctionCycle];
+
+        emit NftClaimed(currentBidder.bidder);
     }
 
     function claimAuctionWinnings() external onlyOwner {
