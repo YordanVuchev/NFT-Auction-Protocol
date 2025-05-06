@@ -24,21 +24,9 @@ contract Deploy is Script {
 
         vm.startBroadcast(deployerKey);
 
-        RaptorNFT nft = new RaptorNFT(
-            initialNftPrice,
-            ethUsdPriceFeed,
-            stalenessDuration,
-            owner,
-            initialNftUri
-        );
+        RaptorNFT nft = new RaptorNFT(initialNftPrice, ethUsdPriceFeed, stalenessDuration, owner, initialNftUri);
 
-        Auction auction = new Auction(
-            address(nft),
-            auctionInitialPrice,
-            minAuctionDeposit,
-            usdc,
-            owner
-        );
+        Auction auction = new Auction(address(nft), auctionInitialPrice, minAuctionDeposit, usdc, owner);
 
         vm.prank(owner);
         nft.setAuctionAddress(address(auction));

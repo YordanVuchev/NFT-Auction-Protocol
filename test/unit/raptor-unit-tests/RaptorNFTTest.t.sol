@@ -5,16 +5,11 @@ import {RaptorBaseTest} from "../../base/RaptorBaseTest.sol";
 import {RaptorNFT} from "../../../src/RaptorNFT.sol";
 
 contract RaptorNFTTest is RaptorBaseTest {
-
     string constant NFT_NAME = "Raptor";
     string constant NFT_SYMBOL = "RR";
 
-
-
     function setUp() public override {
         super.setUp();
-
-        
     }
 
     function testNameAndSymbolAreCorrertlyInitialized() public view {
@@ -227,12 +222,8 @@ contract RaptorNFTTest is RaptorBaseTest {
     }
 
     function testOnlyAuctionCanCallMintNftToAuctionWinner() public {
-
         vm.prank(BOB);
         vm.expectRevert(RaptorNFT.RaptorNFT__Unauthorized.selector);
         nft.mintNftToAuctionWinner(BOB);
     }
-
-
-
 }

@@ -5,219 +5,199 @@ import {BaseTest} from "../../base/BaseTest.sol";
 import {Auction} from "../../../src/Auction.sol";
 
 contract AuctionTest is BaseTest {
+    address BIDDER = makeAddr("bidder");
+    address OUTBIDDER = makeAddr("outbidder");
 
-  address BIDDER = makeAddr("bidder");
-  address OUTBIDDER = makeAddr("outbidder");
+    uint256 INITIAL_BIDDER_BALANCE = 100e6;
+    uint256 INITIAL_BIDDER_DEPOSIT = INITIAL_AUCTION_NFT_PRICE + 10e6;
+    uint256 NEXT_AUCTION_SKIP_TIME = 3 hours;
 
-  uint256 INITIAL_BIDDER_BALANCE = 100e6;
-  uint256 INITIAL_BIDDER_DEPOSIT = INITIAL_AUCTION_NFT_PRICE + 10e6;
-  uint256 NEXT_AUCTION_SKIP_TIME = 3 hours;
+    function setUp() public override {
+        super.setUp();
 
-  function setUp() public override {
-      super.setUp();
+        usdc.mint(BIDDER, INITIAL_BIDDER_BALANCE);
+        usdc.mint(OUTBIDDER, INITIAL_BIDDER_BALANCE);
+        vm.prank(BIDDER);
+        usdc.approve(address(auction), INITIAL_BIDDER_BALANCE);
 
-      usdc.mint(BIDDER, INITIAL_BIDDER_BALANCE);
-      usdc.mint(OUTBIDDER, INITIAL_BIDDER_BALANCE);
-      vm.prank(BIDDER);
-      usdc.approve(address(auction), INITIAL_BIDDER_BALANCE);
+        vm.prank(OUTBIDDER);
+        usdc.approve(address(auction), INITIAL_BIDDER_BALANCE);
+    }
 
-      vm.prank(OUTBIDDER);
-      usdc.approve(address(auction), INITIAL_BIDDER_BALANCE);
-  }
+    modifier initialBid() {
+        vm.startPrank(BIDDER);
 
-  modifier initialBid() {
-    vm.startPrank(BIDDER);
+        auction.bid(INITIAL_BIDDER_DEPOSIT);
 
-    auction.bid(INITIAL_BIDDER_DEPOSIT);
+        vm.stopPrank();
 
-    vm.stopPrank();
+        _;
+    }
 
-    _;
-  }
+    modifier outBidInitialBidder() {
+        vm.startPrank(OUTBIDDER);
 
-  modifier outBidInitialBidder() {
+        auction.bid(INITIAL_BIDDER_DEPOSIT + MIN_AUCTION_DEPOSIT_AMOUNT);
 
-    vm.startPrank(OUTBIDDER);
+        vm.stopPrank();
 
-    auction.bid(INITIAL_BIDDER_DEPOSIT + MIN_AUCTION_DEPOSIT_AMOUNT);
+        _;
+    }
 
-    vm.stopPrank();
+    function testBidTransfersUserDepositSuccessfullyAndUpdatesState() public {
+        vm.startPrank(BIDDER);
 
-    _;
-  }
+        auction.bid(INITIAL_BIDDER_DEPOSIT);
 
-  function testBidTransfersUserDepositSuccessfullyAndUpdatesState() public {
+        vm.stopPrank();
 
-    vm.startPrank(BIDDER);
+        Auction.AuctionBidder memory bidderStruct = auction.getAuctionBidder(1);
 
-    auction.bid(INITIAL_BIDDER_DEPOSIT);
+        assertEq(bidderStruct.bidder, BIDDER);
+        assertEq(bidderStruct.bidAmount, INITIAL_BIDDER_DEPOSIT);
+    }
 
-    vm.stopPrank();
+    function testInitialBidderCnnMintTheNFTByBiddingInitialPrice() public {
+        vm.startPrank(BIDDER);
 
-    Auction.AuctionBidder memory bidderStruct = auction.getAuctionBidder(1);
+        auction.bid(INITIAL_AUCTION_NFT_PRICE);
 
-    assertEq(bidderStruct.bidder, BIDDER);
-    assertEq(bidderStruct.bidAmount, INITIAL_BIDDER_DEPOSIT);
-  }
+        vm.stopPrank();
 
+        Auction.AuctionBidder memory bidderStruct = auction.getAuctionBidder(1);
 
-  function testInitialBidderCnnMintTheNFTByBiddingInitialPrice() public {
+        assertEq(bidderStruct.bidder, BIDDER);
+        assertEq(bidderStruct.bidAmount, INITIAL_AUCTION_NFT_PRICE);
+    }
 
-    vm.startPrank(BIDDER);
+    function testBidRevertsIfBidderTriesDepositingLessThanHighestBidder() public {
+        vm.startPrank(BIDDER);
 
-    auction.bid(INITIAL_AUCTION_NFT_PRICE);
+        auction.bid(INITIAL_BIDDER_DEPOSIT);
+        vm.stopPrank();
 
-    vm.stopPrank();
+        vm.startPrank(OUTBIDDER);
 
-    Auction.AuctionBidder memory bidderStruct = auction.getAuctionBidder(1);
+        vm.expectRevert(Auction.Auction__DepositTooLow.selector);
+        auction.bid(1);
 
-    assertEq(bidderStruct.bidder, BIDDER);
-    assertEq(bidderStruct.bidAmount, INITIAL_AUCTION_NFT_PRICE);
-  }
+        vm.stopPrank();
+    }
 
-  function testBidRevertsIfBidderTriesDepositingLessThanHighestBidder() public {
+    function testBidRevertsIfBidderDepositsLessThanMinimumDeposit() public initialBid {
+        vm.startPrank(OUTBIDDER);
 
-    vm.startPrank(BIDDER);
+        vm.expectRevert(Auction.Auction__DepositTooLow.selector);
+        auction.bid(INITIAL_BIDDER_DEPOSIT + MIN_AUCTION_DEPOSIT_AMOUNT - 1);
 
-    auction.bid(INITIAL_BIDDER_DEPOSIT);
-    vm.stopPrank();
+        vm.stopPrank();
+    }
 
-    vm.startPrank(OUTBIDDER);
+    function testPreviousBidderGetsRefunded() public initialBid {
+        vm.startPrank(OUTBIDDER);
 
-    vm.expectRevert(Auction.Auction__DepositTooLow.selector);
-    auction.bid(1);
+        auction.bid(INITIAL_BIDDER_DEPOSIT + MIN_AUCTION_DEPOSIT_AMOUNT);
 
-    vm.stopPrank();
-  }
+        vm.stopPrank();
 
-  function testBidRevertsIfBidderDepositsLessThanMinimumDeposit() public initialBid {
-  
+        assertEq(usdc.balanceOf(BIDDER), INITIAL_BIDDER_BALANCE);
+    }
 
-    vm.startPrank(OUTBIDDER);
+    function testHighestBidAmountGetsUpdatedCorrectly() public initialBid outBidInitialBidder {
+        assertEq(auction.s_highestBidAmount(), INITIAL_BIDDER_DEPOSIT + MIN_AUCTION_DEPOSIT_AMOUNT);
+    }
 
-    vm.expectRevert(Auction.Auction__DepositTooLow.selector);
-    auction.bid(INITIAL_BIDDER_DEPOSIT + MIN_AUCTION_DEPOSIT_AMOUNT - 1);
+    function testAuctionIsExtendedIfBidIsMadeAtTheLastMinute() public initialBid {
+        uint256 initialAuctionEndTs = auction.s_auctionEndTimestamp();
 
-    vm.stopPrank();
-  }
+        vm.warp(initialAuctionEndTs - 1 minutes);
 
-  function testPreviousBidderGetsRefunded() public initialBid {
+        vm.prank(OUTBIDDER);
+        auction.bid(INITIAL_BIDDER_DEPOSIT + MIN_AUCTION_DEPOSIT_AMOUNT);
 
-    vm.startPrank(OUTBIDDER);
+        uint256 updatedAuctionEndTs = auction.s_auctionEndTimestamp();
 
-    auction.bid(INITIAL_BIDDER_DEPOSIT + MIN_AUCTION_DEPOSIT_AMOUNT);
+        assertEq(updatedAuctionEndTs, initialAuctionEndTs + 5 minutes);
+    }
 
-    vm.stopPrank();
+    function testMintToAuctionWinnerMintsNFTToHighestBidder() public initialBid outBidInitialBidder {
+        skip(NEXT_AUCTION_SKIP_TIME);
 
-    assertEq(usdc.balanceOf(BIDDER), INITIAL_BIDDER_BALANCE);
+        vm.expectEmit(true, false, false, false);
+        emit Auction.NftClaimed(OUTBIDDER);
+        auction.mintNftToAuctionWinner(1);
 
-  }
+        assertEq(nft.balanceOf(OUTBIDDER), 1);
+    }
 
-  function testHighestBidAmountGetsUpdatedCorrectly() public initialBid outBidInitialBidder {
+    function testMintRevertsIfAuctionHasNotEnded() public initialBid {
+        vm.expectRevert(Auction.Auction__AuctionActive.selector);
+        auction.mintNftToAuctionWinner(1);
+    }
 
-    assertEq(auction.s_highestBidAmount(), INITIAL_BIDDER_DEPOSIT + MIN_AUCTION_DEPOSIT_AMOUNT);
-  }
+    function testMintRevertsIfWinnerTriesClaimingTwice() public initialBid outBidInitialBidder {
+        vm.startPrank(OUTBIDDER);
 
+        skip(NEXT_AUCTION_SKIP_TIME);
+        auction.mintNftToAuctionWinner(1);
 
-  function testAuctionIsExtendedIfBidIsMadeAtTheLastMinute() public initialBid {
+        vm.expectRevert(Auction.Auction__RewardClaimed.selector);
+        auction.mintNftToAuctionWinner(1);
 
-    uint256 initialAuctionEndTs = auction.s_auctionEndTimestamp();
+        vm.stopPrank();
+    }
 
-    vm.warp(initialAuctionEndTs - 1 minutes);
+    function testWinningsSendsCorrectAmountToOwner() public initialBid {
+        skip(NEXT_AUCTION_SKIP_TIME);
 
-    vm.prank(OUTBIDDER);
-    auction.bid(INITIAL_BIDDER_DEPOSIT + MIN_AUCTION_DEPOSIT_AMOUNT);
-    
-    uint256 updatedAuctionEndTs = auction.s_auctionEndTimestamp();
+        vm.startPrank(OWNER);
 
-    assertEq(updatedAuctionEndTs, initialAuctionEndTs + 5 minutes);
-  }
+        uint256 previousUSDCBalance = usdc.balanceOf(OWNER);
 
-  function testMintToAuctionWinnerMintsNFTToHighestBidder() public initialBid outBidInitialBidder {
+        auction.claimAuctionWinnings(1);
 
-    skip(NEXT_AUCTION_SKIP_TIME);
+        uint256 afterUSDCBalance = usdc.balanceOf(OWNER);
 
+        vm.stopPrank();
 
-    vm.expectEmit(true, false, false, false);
-    emit Auction.NftClaimed(OUTBIDDER);
-    auction.mintNftToAuctionWinner(1);
+        Auction.AuctionBidder memory bidderStruct = auction.getAuctionBidder(1);
 
-    assertEq(nft.balanceOf(OUTBIDDER),1);
-  }
+        assertEq(afterUSDCBalance - previousUSDCBalance, bidderStruct.bidAmount);
+    }
 
-  function testMintRevertsIfAuctionHasNotEnded() public initialBid {
+    function testWinningsRevertIfOwnerTriesToClaimTwice() public initialBid {
+        skip(NEXT_AUCTION_SKIP_TIME);
 
-    vm.expectRevert(Auction.Auction__AuctionActive.selector);
-    auction.mintNftToAuctionWinner(1);  
-  }
+        vm.startPrank(OWNER);
 
-  function testMintRevertsIfWinnerTriesClaimingTwice() public initialBid outBidInitialBidder {
-    vm.startPrank(OUTBIDDER);
+        auction.claimAuctionWinnings(1);
 
-    skip(NEXT_AUCTION_SKIP_TIME);
-    auction.mintNftToAuctionWinner(1);  
+        vm.expectRevert(Auction.Auction__BidAlreadyClaimed.selector);
+        auction.claimAuctionWinnings(1);
 
-    vm.expectRevert(Auction.Auction__RewardClaimed.selector);
-    auction.mintNftToAuctionWinner(1);
+        vm.stopPrank();
+    }
 
-    vm.stopPrank();
-  }
+    function testStateGetsResetWhenNewAuctionHasStarted() public {
+        skip(NEXT_AUCTION_SKIP_TIME);
 
+        vm.startPrank(BIDDER);
 
-  function testWinningsSendsCorrectAmountToOwner() public initialBid {
+        auction.bid(INITIAL_BIDDER_DEPOSIT);
 
-    skip(NEXT_AUCTION_SKIP_TIME);
+        vm.stopPrank();
 
-    vm.startPrank(OWNER);
+        assertEq(auction.s_auctionCycle(), 2);
+        assertEq(auction.s_highestBidAmount(), INITIAL_BIDDER_DEPOSIT);
+    }
 
-    uint256 previousUSDCBalance = usdc.balanceOf(OWNER);
+    function testOwnerCanUpdateInitialNFTPrice() public {
+        vm.startPrank(OWNER);
 
-    auction.claimAuctionWinnings(1);
+        auction.setAuctionInitialPrice(10e6);
 
-    uint256 afterUSDCBalance = usdc.balanceOf(OWNER);
+        vm.stopPrank();
 
-    vm.stopPrank();
-
-    Auction.AuctionBidder memory bidderStruct = auction.getAuctionBidder(1);
-
-    assertEq(afterUSDCBalance - previousUSDCBalance,bidderStruct.bidAmount);
-  }
-
-  function testWinningsRevertIfOwnerTriesToClaimTwice() public initialBid {
-
-    skip(NEXT_AUCTION_SKIP_TIME);
-
-    vm.startPrank(OWNER);
-
-    auction.claimAuctionWinnings(1);
-
-    vm.expectRevert(Auction.Auction__BidAlreadyClaimed.selector);
-    auction.claimAuctionWinnings(1);
-
-    vm.stopPrank();
-  }
-
-  function testStateGetsResetWhenNewAuctionHasStarted() public {
-    skip(NEXT_AUCTION_SKIP_TIME);
-
-    vm.startPrank(BIDDER);
-
-    auction.bid(INITIAL_BIDDER_DEPOSIT);
-
-    vm.stopPrank();
-
-    assertEq(auction.s_auctionCycle(), 2);
-    assertEq(auction.s_highestBidAmount(), INITIAL_BIDDER_DEPOSIT);
-  }
-
-
-  function testOwnerCanUpdateInitialNFTPrice() public {
-    vm.startPrank(OWNER);
-
-    auction.setAuctionInitialPrice(10e6);
-
-    vm.stopPrank();
-
-    assertEq(auction.s_auctionInitialPrice(), 10e6);
-  }
+        assertEq(auction.s_auctionInitialPrice(), 10e6);
+    }
 }

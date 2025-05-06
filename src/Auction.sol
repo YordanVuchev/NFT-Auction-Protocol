@@ -52,13 +52,11 @@ contract Auction is Ownable {
     }
 
     modifier auctionHasEnded(uint256 auctionCycle) {
-
         if (auctionCycle >= s_auctionCycle && Time.blockTs() < s_auctionEndTimestamp) {
             revert Auction__AuctionActive();
         }
 
-       _;
-
+        _;
     }
 
     constructor(address _nft, uint256 _nftInitialPrice, uint256 _minimumDepositAmount, address _usdc, address owner)
@@ -75,8 +73,7 @@ contract Auction is Ownable {
     }
 
     function bid(uint256 depositAmount) external updateAuction {
-        if (depositAmount <= s_highestBidAmount 
-            || depositAmount < s_highestBidAmount + s_minimumDepositAmount) {
+        if (depositAmount <= s_highestBidAmount || depositAmount < s_highestBidAmount + s_minimumDepositAmount) {
             revert Auction__DepositTooLow();
         }
 
@@ -96,12 +93,10 @@ contract Auction is Ownable {
             s_auctionEndTimestamp += 5 minutes;
         }
 
-        emit BidPlaced(msg.sender,depositAmount);
+        emit BidPlaced(msg.sender, depositAmount);
     }
 
     function mintNftToAuctionWinner(uint256 auctionCycle) external auctionHasEnded(auctionCycle) {
-    
-
         AuctionBidder storage currentBidder = s_highestBidders[auctionCycle];
 
         if (currentBidder.rewardClaimed) {
@@ -116,26 +111,24 @@ contract Auction is Ownable {
     }
 
     function claimAuctionWinnings(uint256 auctionCycle) external onlyOwner auctionHasEnded(auctionCycle) {
+        AuctionBidder storage bidder = s_highestBidders[auctionCycle];
 
-     
-      AuctionBidder storage bidder = s_highestBidders[auctionCycle];
+        if (bidder.bidClaimed) {
+            revert Auction__BidAlreadyClaimed();
+        }
 
-      if(bidder.bidClaimed){
-        revert Auction__BidAlreadyClaimed();
-      }
+        usdc.safeTransfer(owner(), bidder.bidAmount);
 
-      usdc.safeTransfer(owner(), bidder.bidAmount);
-
-      bidder.bidClaimed = true;
+        bidder.bidClaimed = true;
     }
 
     function setAuctionInitialPrice(uint256 newInitialPrice) external onlyOwner {
-      s_auctionInitialPrice = newInitialPrice;
+        s_auctionInitialPrice = newInitialPrice;
 
-      emit InitialPriceUpdated(newInitialPrice);
+        emit InitialPriceUpdated(newInitialPrice);
     }
 
     function getAuctionBidder(uint256 auctionCycle) external view returns (AuctionBidder memory) {
-      return s_highestBidders[auctionCycle];
+        return s_highestBidders[auctionCycle];
     }
 }
