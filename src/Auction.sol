@@ -14,6 +14,7 @@ contract Auction is Ownable {
     error Auction__AuctionHasEnded();
     error Auction__AuctionActive();
     error Auction__RewardClaimed();
+    error Auction__BidAlreadyClaimed();
 
     uint256 public s_highestBidAmount;
     uint256 public s_auctionInitialPrice;
@@ -28,6 +29,7 @@ contract Auction is Ownable {
         address bidder;
         uint256 bidAmount;
         bool rewardClaimed;
+        bool bidClaimed;
     }
 
     mapping(uint256 => AuctionBidder) s_highestBidders;
@@ -37,7 +39,7 @@ contract Auction is Ownable {
 
     event BidPlaced(address indexed user, uint256 indexed amount);
     event NftClaimed(address indexed winner);
-    event InitialPriceUpdated(address indexed price);
+    event InitialPriceUpdated(uint256 indexed price);
 
     modifier updateAuction() {
         if (Time.blockTs() > s_auctionEndTimestamp) {
@@ -104,10 +106,21 @@ contract Auction is Ownable {
         emit NftClaimed(currentBidder.bidder);
     }
 
-    function claimAuctionWinnings() external onlyOwner {
-        uint256 usdcBalance = usdc.balanceOf(address(this));
+    function claimAuctionWinnings(uint256 auctionCycle) external onlyOwner {
 
-        usdc.safeTransfer(owner(), usdcBalance);
+      if (auctionCycle >= s_auctionCycle) {
+        revert Auction__AuctionActive();
+      }
+
+      AuctionBidder storage bidder = s_highestBidders[auctionCycle];
+
+      if(bidder.bidClaimed){
+        revert Auction__BidAlreadyClaimed();
+      }
+
+      usdc.safeTransfer(owner(), bidder.bidAmount);
+
+      bidder.bidClaimed = true;
     }
 
     function setAuctionInitialPrice(uint256 newInitialPrice) external onlyOwner {
