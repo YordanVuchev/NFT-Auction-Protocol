@@ -33,6 +33,7 @@ contract Auction is Ownable {
     }
 
     mapping(uint256 => AuctionBidder) s_highestBidders;
+    mapping(address => uint256) s_refunds;
 
     RaptorNFT immutable nft;
     IERC20 immutable usdc;
@@ -40,6 +41,7 @@ contract Auction is Ownable {
     event BidPlaced(address indexed user, uint256 indexed amount);
     event NftClaimed(address indexed winner);
     event InitialPriceUpdated(uint256 indexed price);
+    event BidderRefunded(address indexed user, uint256 indexed amount);
 
     modifier updateAuction() {
         if (Time.blockTs() > s_auctionEndTimestamp) {
@@ -82,7 +84,7 @@ contract Auction is Ownable {
         AuctionBidder storage currentBidder = s_highestBidders[s_auctionCycle];
 
         if (currentBidder.bidder != address(0)) {
-            usdc.safeTransfer(currentBidder.bidder, currentBidder.bidAmount);
+            s_refunds[currentBidder.bidder] +=  currentBidder.bidAmount;
         }
 
         currentBidder.bidAmount = depositAmount;
@@ -120,6 +122,14 @@ contract Auction is Ownable {
         usdc.safeTransfer(owner(), bidder.bidAmount);
 
         bidder.bidClaimed = true;
+    }
+
+    function refund() external {
+        usdc.safeTransfer(msg.sender,s_refunds[msg.sender]);
+
+        emit BidderRefunded(msg.sender,s_refunds[msg.sender]);
+
+        s_refunds[msg.sender] = 0;
     }
 
     function setAuctionInitialPrice(uint256 newInitialPrice) external onlyOwner {
