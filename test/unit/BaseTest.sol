@@ -26,7 +26,7 @@ contract BaseTest is Test {
     uint256 public constant INITIAL_STALENESS_DURATION = 30 minutes;
 
     uint256 public constant INITIAL_AUCTION_NFT_PRICE = 30e6;
-    uint256 public constant MIN_DEPOSIT_AMOUNT = 5e6;
+    uint256 public constant MIN_AUCTION_DEPOSIT_AMOUNT = 5e6;
     
     function setUp() public virtual {
         mockPriceFeed = new MockV3Aggregator(18, INITIAL_ETH_USD_PRICE);
@@ -36,7 +36,7 @@ contract BaseTest is Test {
     
         usdc = new MockERC20(6);
 
-        auction = new Auction(address(nft),INITIAL_AUCTION_NFT_PRICE,MIN_DEPOSIT_AMOUNT, address(usdc), OWNER);
+        auction = new Auction(address(nft),INITIAL_AUCTION_NFT_PRICE,MIN_AUCTION_DEPOSIT_AMOUNT, address(usdc), OWNER);
 
         vm.deal(BOB, INITIAL_USER_BALANCE);
         usdc.mint(BOB, INITIAL_USER_STABLE_BALANCE);

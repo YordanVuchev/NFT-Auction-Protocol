@@ -21,7 +21,7 @@ contract Auction is Ownable {
     uint256 s_auctionCycle;
     uint256 s_minimumDepositAmount;
 
-    uint32 s_auctionEndTimestamp;
+    uint32 public s_auctionEndTimestamp;
 
     uint32 public constant AUCTION_MIN_DURATION = 2 hours;
 
