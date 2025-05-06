@@ -16,6 +16,7 @@ contract Auction is Ownable {
     error Auction__RewardClaimed();
 
     uint256 public s_highestBidAmount;
+    uint256 public s_auctionInitialPrice;
     uint256 s_auctionCycle;
     uint256 s_minimumDepositAmount;
 
@@ -26,6 +27,7 @@ contract Auction is Ownable {
     struct AuctionBidder {
         address bidder;
         uint256 bidAmount;
+        bool rewardClaimed;
     }
 
     mapping(uint256 => AuctionBidder) s_highestBidders;
@@ -35,12 +37,13 @@ contract Auction is Ownable {
 
     event BidPlaced(address indexed user, uint256 indexed amount);
     event NftClaimed(address indexed winner);
+    event InitialPriceUpdated(address indexed price);
 
     modifier updateAuction() {
         if (Time.blockTs() > s_auctionEndTimestamp) {
             s_auctionEndTimestamp = Time.blockTs() + AUCTION_MIN_DURATION;
             s_auctionCycle++;
-            s_highestBidAmount = 0;
+            s_highestBidAmount = s_auctionInitialPrice;
         }
 
         _;
@@ -51,6 +54,7 @@ contract Auction is Ownable {
     {
         nft = RaptorNFT(_nft);
         s_highestBidAmount = _nftInitialPrice;
+        s_auctionInitialPrice = _nftInitialPrice;
         s_minimumDepositAmount = _minimumDepositAmount;
         usdc = IERC20(_usdc);
 
@@ -87,15 +91,15 @@ contract Auction is Ownable {
             revert Auction__AuctionActive();
         }
 
-        AuctionBidder memory currentBidder = s_highestBidders[auctionCycle];
+        AuctionBidder storage currentBidder = s_highestBidders[auctionCycle];
 
-        if (currentBidder.bidder == address(0)) {
+        if (currentBidder.rewardClaimed) {
             revert Auction__RewardClaimed();
         }
 
         nft.mintNftToAuctionWinner(currentBidder.bidder);
 
-        delete s_highestBidders[auctionCycle];
+        currentBidder.rewardClaimed = true;
 
         emit NftClaimed(currentBidder.bidder);
     }
@@ -104,5 +108,15 @@ contract Auction is Ownable {
         uint256 usdcBalance = usdc.balanceOf(address(this));
 
         usdc.safeTransfer(owner(), usdcBalance);
+    }
+
+    function setAuctionInitialPrice(uint256 newInitialPrice) external onlyOwner {
+      s_auctionInitialPrice = newInitialPrice;
+
+      emit InitialPriceUpdated(newInitialPrice);
+    }
+
+    function getAuctionBidder(uint256 auctionCycle) external view returns (AuctionBidder memory) {
+      return s_highestBidders[auctionCycle];
     }
 }
