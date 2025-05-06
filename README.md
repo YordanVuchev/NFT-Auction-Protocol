@@ -16,5 +16,5 @@ Non-whitelisted users can participate in a **2-hour recurring English Auction**:
 
 - Each auction cycle lasts **2 hours**.
 - Bids are placed using **USDC**.
-- The **highest bidder** at the end of each auction cycle gets the NFT **automatically minted**.
+- The **highest bidder** at the end of each auction cycle gets the NFT.
 - Auction cycles automatically roll over, resetting the bid state while preserving winner history.
