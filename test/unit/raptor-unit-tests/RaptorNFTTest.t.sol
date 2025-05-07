@@ -229,22 +229,22 @@ contract RaptorNFTTest is RaptorBaseTest {
 
     function testOwnerCanSuccessfullyWithdrawETH() public {
         _whitelistUser(BOB);
-    
+
         uint256 depositAmount = 1 ether;
-    
+
         vm.prank(BOB);
         nft.mintNftWithETH{value: depositAmount}();
-    
+
         uint256 initialOwnerBalance = OWNER.balance;
-    
+
         vm.startPrank(OWNER);
-    
+
         nft.withdrawETH();
-    
+
         vm.stopPrank();
-    
+
         uint256 finalOwnerBalance = OWNER.balance;
-    
+
         assertGt(finalOwnerBalance, initialOwnerBalance, "Owner did not receive ETH");
     }
 
@@ -257,31 +257,28 @@ contract RaptorNFTTest is RaptorBaseTest {
     function testOwnerCanSuccessfullyWithdrawToken() public {
         _whitelistUser(BOB);
         _whitelistToken(address(usdc));
-    
-        uint256 depositAmount = INITIAL_NFT_PRICE / 1e12; 
-    
+
+        uint256 depositAmount = INITIAL_NFT_PRICE / 1e12;
+
         vm.startPrank(BOB);
         usdc.approve(address(nft), depositAmount);
         nft.mintNftWithStable(address(usdc));
         vm.stopPrank();
-    
+
         uint256 initialOwnerBalance = usdc.balanceOf(OWNER);
-    
-    
+
         vm.prank(OWNER);
         nft.withdrawToken(address(usdc));
-    
+
         uint256 finalOwnerBalance = usdc.balanceOf(OWNER);
         assertEq(finalOwnerBalance - initialOwnerBalance, depositAmount, "Incorrect token amount withdrawn");
     }
 
     function testWithdrawTokenRevertsWhenNothingToWithdraw() public {
         _whitelistToken(address(usdc));
-    
+
         vm.prank(OWNER);
         vm.expectRevert(RaptorNFT.RaptorNFT__NothingToWithdraw.selector);
         nft.withdrawToken(address(usdc));
     }
-    
-    
 }
