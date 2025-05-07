@@ -22,6 +22,8 @@ contract RaptorNFT is ERC721, Ownable, ReentrancyGuard {
     error RaptorNFT__TokenNotSupported();
     error RaptorNFT__AddressZero();
     error RaptorNFT__RefundFailed();
+    error RaptorNFT__NothingToWithdraw();
+    error RaptorNFT__WithdrawFailed();
 
     uint256 public s_tokenIdCounter;
     uint256 public s_nftPriceInUsd;
@@ -121,6 +123,28 @@ contract RaptorNFT is ERC721, Ownable, ReentrancyGuard {
         emit NftMinted(msg.sender, s_tokenIdCounter);
 
         s_tokenIdCounter++;
+    }
+
+    function withdrawETH() external onlyOwner {
+        uint256 balance = address(this).balance;
+        if(balance == 0) {
+            revert RaptorNFT__NothingToWithdraw();
+        }
+
+        (bool success, ) = payable(owner()).call{value: balance}("");
+
+        if(!success) {
+            revert RaptorNFT__WithdrawFailed();
+        }
+    }
+
+    function withdrawToken(address token) external onlyOwner onlySupportedTokens(token) {
+        uint256 balance = IERC20(token).balanceOf(address(this));
+        if(balance == 0) {
+            revert RaptorNFT__NothingToWithdraw();
+        }
+
+        IERC20(token).safeTransfer(owner(), balance);
     }
 
     function addUserToWhitelist(address user) external onlyOwner notAddressZero(user) {
