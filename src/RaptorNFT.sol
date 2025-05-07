@@ -138,7 +138,7 @@ contract RaptorNFT is ERC721, Ownable, ReentrancyGuard {
         }
     }
 
-    function withdrawToken(address token) external onlyOwner onlySupportedTokens(token) {
+    function withdrawToken(address token) external onlyOwner  {
         uint256 balance = IERC20(token).balanceOf(address(this));
         if (balance == 0) {
             revert RaptorNFT__NothingToWithdraw();
